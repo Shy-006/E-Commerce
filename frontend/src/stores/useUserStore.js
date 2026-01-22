@@ -3,106 +3,208 @@ import axios from "../lib/axios";
 import { toast } from "react-hot-toast";
 
 export const useUserStore = create((set, get) => ({
+	
 	user: null,
 	loading: false,
 	checkingAuth: true,
 
-	signup: async ({ name, email, password, confirmPassword }) => {
-		set({ loading: true });
+	// 🔐 OTP STATE
+	otpPending: false,
+	pendingEmail: null,
 
-		if (password !== confirmPassword) {
-			set({ loading: false });
-			return toast.error("Passwords do not match");
-		}
+	
+	signup: async ({ name, email, password }) => {
+	set({ loading: true });
 
-		try {
-			const res = await axios.post("/auth/signup", { name, email, password });
-			set({ user: res.data, loading: false });
-		} catch (error) {
-			set({ loading: false });
-			toast.error(error.response.data.message || "An error occurred");
-		}
-	},
+	try {
+		const res = await axios.post("/auth/signup", {
+			name,
+			email,
+			password,
+		});
+
+		set({
+			loading: false,
+			otpPending: true,
+			pendingEmail: res.data.email,
+			user: null,
+		});
+
+		toast.success("OTP sent to your email");
+	} catch (error) {
+		set({ loading: false });
+		toast.error(error.response?.data?.message || "Signup failed");
+	}
+},
+
+
+	
 	login: async (email, password) => {
 		set({ loading: true });
 
 		try {
 			const res = await axios.post("/auth/login", { email, password });
 
-			set({ user: res.data, loading: false });
+			set({
+				user: res.data,
+				loading: false,
+				otpPending: false,
+				pendingEmail: null,
+			});
+
+			toast.success("Login successful");
 		} catch (error) {
 			set({ loading: false });
-			toast.error(error.response.data.message || "An error occurred");
+			toast.error(error.response?.data?.message || "Login failed");
 		}
 	},
 
+	
+	googleLogin: async (token) => {
+	set({ loading: true });
+
+	try {
+		const res = await axios.post("/auth/google", { token });
+
+		set({
+			user: res.data,
+			loading: false,
+			otpPending: false,
+			pendingEmail: null,
+		});
+
+		toast.success("Login successful");
+	} catch (error) {
+		set({ loading: false });
+		toast.error("Google login failed");
+	}
+},
+
+	
+	verifyOtp: async (email, otp) => {
+		set({ loading: true });
+
+		try {
+			const res = await axios.post("/auth/verify-otp", { email, otp });
+
+			set({
+				user: res.data.user,
+				otpPending: false,
+				pendingEmail: null,
+				loading: false,
+			});
+
+			toast.success("Verification successful");
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || "Invalid OTP");
+		}
+	},
+
+	resetPassword: async (token, password, navigate) => {
+	set({ loading: true });
+
+	try {
+		await axios.post("/auth/reset-password", {
+			token,
+			password,
+		});
+
+		set({ loading: false });
+		toast.success("Password reset successful");
+		navigate("/login");
+	} catch (error) {
+		set({ loading: false });
+		toast.error(error.response?.data?.message || "Reset failed");
+	}
+},
+
+
+	
 	logout: async () => {
 		try {
 			await axios.post("/auth/logout");
-			set({ user: null });
-		} catch (error) {
-			toast.error(error.response?.data?.message || "An error occurred during logout");
+		} catch {
+			
 		}
+
+		set({
+			user: null,
+			otpPending: false,
+			pendingEmail: null,
+		});
 	},
 
+	
 	checkAuth: async () => {
+		const { otpPending } = get();
+		if (otpPending) {
+			set({ checkingAuth: false });
+			return;
+		}
+
 		set({ checkingAuth: true });
+
 		try {
-			const response = await axios.get("/auth/profile");
-			set({ user: response.data, checkingAuth: false });
-		} catch (error) {
-			console.log(error.message);
-			set({ checkingAuth: false, user: null });
+			const res = await axios.get("/auth/profile");
+			set({ user: res.data, checkingAuth: false });
+		} catch {
+			set({ user: null, checkingAuth: false });
 		}
 	},
 
+	
 	refreshToken: async () => {
-		// Prevent multiple simultaneous refresh attempts
-		if (get().checkingAuth) return;
+		const { checkingAuth, otpPending } = get();
+		if (checkingAuth || otpPending) return;
 
 		set({ checkingAuth: true });
+
 		try {
-			const response = await axios.post("/auth/refresh-token");
+			await axios.post("/auth/refresh-token");
 			set({ checkingAuth: false });
-			return response.data;
-		} catch (error) {
-			set({ user: null, checkingAuth: false });
-			throw error;
+		} catch {
+			set({
+				user: null,
+				checkingAuth: false,
+			});
+			throw new Error("Refresh failed");
 		}
 	},
 }));
 
-// TODO: Implement the axios interceptors for refreshing access token
-
-// Axios interceptor for token refresh
 let refreshPromise = null;
 
 axios.interceptors.response.use(
-	(response) => response,
+	(res) => res,
 	async (error) => {
 		const originalRequest = error.config;
+		const { otpPending } = useUserStore.getState();
+
+		
+		if (otpPending) {
+			return Promise.reject(error);
+		}
+
 		if (error.response?.status === 401 && !originalRequest._retry) {
 			originalRequest._retry = true;
 
 			try {
-				// If a refresh is already in progress, wait for it to complete
 				if (refreshPromise) {
 					await refreshPromise;
 					return axios(originalRequest);
 				}
 
-				// Start a new refresh process
 				refreshPromise = useUserStore.getState().refreshToken();
 				await refreshPromise;
 				refreshPromise = null;
 
 				return axios(originalRequest);
-			} catch (refreshError) {
-				// If refresh fails, redirect to login or handle as needed
+			} catch {
 				useUserStore.getState().logout();
-				return Promise.reject(refreshError);
 			}
 		}
+
 		return Promise.reject(error);
 	}
 );

@@ -9,7 +9,7 @@ export const getAnalyticsData = async () => {
 	const salesData = await Order.aggregate([
 		{
 			$group: {
-				_id: null, // it groups all documents together,
+				_id: null, 
 				totalSales: { $sum: 1 },
 				totalRevenue: { $sum: "$totalAmount" },
 			},
@@ -47,17 +47,9 @@ export const getDailySalesData = async (startDate, endDate) => {
 			{ $sort: { _id: 1 } },
 		]);
 
-		// example of dailySalesData
-		// [
-		// 	{
-		// 		_id: "2024-08-18",
-		// 		sales: 12,
-		// 		revenue: 1450.75
-		// 	},
-		// ]
+		
 
 		const dateArray = getDatesInRange(startDate, endDate);
-		// console.log(dateArray) // ['2024-08-18', '2024-08-19', ... ]
 
 		return dateArray.map((date) => {
 			const foundData = dailySalesData.find((item) => item._id === date);
