@@ -1,30 +1,20 @@
-import nodemailer from "nodemailer";
+import transporter from "./emailTransporter.js";
 
 const sendLoginAlertEmail = async ({ email, browser, ip }) => {
 	try {
-		const transporter = nodemailer.createTransport({
-			service: "gmail",
-			auth: {
-				user: process.env.EMAIL_USER,
-				pass: process.env.EMAIL_PASS,
-			},
-		});
-
 		await transporter.sendMail({
-			from: `"E-Commerce Security" <${process.env.EMAIL_USER}>`,
+			from: `"${process.env.BREVO_FROM_NAME}" <${process.env.BREVO_FROM_EMAIL}>`,
 			to: email,
 			subject: "🔐 New Login Detected",
 			html: `
 				<h2>New Login Alert</h2>
 				<p>Your account was logged in successfully.</p>
-
 				<hr/>
 				<p><b>Browser:</b> ${browser}</p>
 				<p><b>IP Address:</b> ${ip}</p>
 				<p><b>Time:</b> ${new Date().toLocaleString()}</p>
 				<hr/>
-
-				<p>If this wasn’t you, please reset your password immediately.</p>
+				<p>If this wasn’t you, reset your password immediately.</p>
 				<p><b>E-Commerce Security Team</b></p>
 			`,
 		});

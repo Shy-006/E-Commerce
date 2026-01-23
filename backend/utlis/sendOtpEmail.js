@@ -1,16 +1,8 @@
-import nodemailer from "nodemailer";
+import transporter from "./emailTransporter.js";
 
 const sendOtpEmail = async (email, otp) => {
-	const transporter = nodemailer.createTransport({
-		service: "gmail",
-		auth: {
-			user: process.env.EMAIL_USER,
-			pass: process.env.EMAIL_PASS,
-		},
-	});
-
 	await transporter.sendMail({
-		from: `"E-Commerce" <${process.env.EMAIL_USER}>`,
+		from: `"${process.env.BREVO_FROM_NAME}" <${process.env.BREVO_FROM_EMAIL}>`,
 		to: email,
 		subject: "Your Login OTP",
 		html: `
