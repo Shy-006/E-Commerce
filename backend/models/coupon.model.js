@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const couponSchema = new mongoose.Schema(
 	{
-		code: {
+		code: {			ref: "User",
+
 			type: String,
 			required: true,
 			unique: true,
