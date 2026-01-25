@@ -1,9 +1,10 @@
 {
   "name": "e-commerce",
   "version": "1.0.0",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "dev": "nodemon backend/server.js",
+    "start": "node backend/server.js",
     "build": "npm install  && npm install --prefix frontend && npm run build --prefix frontend"
   },
   "keywords": [],
