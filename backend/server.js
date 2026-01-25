@@ -22,7 +22,7 @@ const __dirname = path.resolve();
 // ✅ CORS FIRST
 app.use(
   cors({
-    origin: ["http://localhost:8080", "http://localhost:5173"],
+    origin: [process.env.CLIENT_URL],
     credentials: true,
   })
 );
