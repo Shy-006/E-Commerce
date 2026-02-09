@@ -2,7 +2,6 @@ import Coupon from "../models/coupon.model.js";
 import Order from "../models/order.model.js";
 import User from "../models/user.model.js";
 import { stripe } from "../lib/stripe.js";
-import sendOrderConfirmationEmail from "../utlis/sendOrderConfirmationEmail.js";
 
 export const createCheckoutSession = async (req, res) => {
 	try {
@@ -128,19 +127,9 @@ export const checkoutSuccess = async (req, res) => {
 
 		await newOrder.save();
 
-		
-		const user = await User.findById(session.metadata.userId);
-
-		
-		await sendOrderConfirmationEmail(
-			user.email,
-			newOrder,
-			user.name
-		);
-
 		res.status(200).json({
 			success: true,
-			message: "Payment successful, order created & email sent",
+			message: "Payment successful, order created",
 			orderId: newOrder._id,
 		});
 	} catch (error) {

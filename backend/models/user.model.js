@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      trim: true,
     },
 
     email: {
@@ -51,36 +52,26 @@ const userSchema = new mongoose.Schema(
       enum: ["customer", "admin"],
       default: "customer",
     },
-
-    
-    otp: String,
-    otpExpiry: Date,
-
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-
-   
-    resetPasswordToken: String,
-    resetPasswordExpiry: Date,
   },
   { timestamps: true }
 );
 
+/* ===================== PASSWORD HASH ===================== */
+userSchema.pre("save", async function (next) {
+  try {
+    if (!this.isModified("password")) return next();
+    if (!this.password) return next();
 
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
-  if (this.authProvider !== "local") return;
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = bcrypt.hash(this.password, salt);
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-userSchema.methods.comparePassword = async function (password) {
-  if (this.authProvider !== "local") return false;
-  return bcrypt.compare(password, this.password);
+/* ===================== PASSWORD MATCH ===================== */
+userSchema.methods.comparePassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model("User", userSchema);
-export default User;
+export default mongoose.model("User", userSchema);

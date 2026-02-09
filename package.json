@@ -21,6 +21,7 @@
     "google-auth-library": "^10.5.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.1.0",
     "mongoose": "^9.0.1",
     "nodemailer": "^7.0.12",
     "stripe": "^20.0.0"

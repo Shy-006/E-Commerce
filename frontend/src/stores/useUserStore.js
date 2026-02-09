@@ -3,42 +3,36 @@ import axios from "../lib/axios";
 import { toast } from "react-hot-toast";
 
 export const useUserStore = create((set, get) => ({
-	
 	user: null,
 	loading: false,
 	checkingAuth: true,
 
-	// 🔐 OTP STATE
-	otpPending: false,
-	pendingEmail: null,
-
-	
+	/* ===================== SIGNUP ===================== */
 	signup: async ({ name, email, password }) => {
-	set({ loading: true });
+		set({ loading: true });
 
-	try {
-		const res = await axios.post("/auth/signup", {
-			name,
-			email,
-			password,
-		});
+		try {
+			const res = await axios.post("/auth/signup", {
+				name,
+				email,
+				password,
+			});
 
-		set({
-			loading: false,
-			otpPending: true,
-			pendingEmail: res.data.email,
-			user: null,
-		});
+			set({
+				loading: false,
+				user: res.data.user,
+			});
 
-		toast.success("OTP sent to your email");
-	} catch (error) {
-		set({ loading: false });
-		toast.error(error.response?.data?.message || "Signup failed");
-	}
-},
+			toast.success("Signup successful");
+			return true;
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || "Signup failed");
+			return false;
+		}
+	},
 
-
-	
+	/* ===================== LOGIN ===================== */
 	login: async (email, password) => {
 		set({ loading: true });
 
@@ -48,101 +42,53 @@ export const useUserStore = create((set, get) => ({
 			set({
 				user: res.data,
 				loading: false,
-				otpPending: false,
-				pendingEmail: null,
 			});
 
 			toast.success("Login successful");
+			return true;
 		} catch (error) {
 			set({ loading: false });
 			toast.error(error.response?.data?.message || "Login failed");
+			return false;
 		}
 	},
 
-	
+	/* ===================== GOOGLE LOGIN ===================== */
 	googleLogin: async (token) => {
-	set({ loading: true });
-
-	try {
-		const res = await axios.post("/auth/google", { token });
-
-		set({
-			user: res.data,
-			loading: false,
-			otpPending: false,
-			pendingEmail: null,
-		});
-
-		toast.success("Login successful");
-	} catch (error) {
-		set({ loading: false });
-		toast.error("Google login failed");
-	}
-},
-
-	
-	verifyOtp: async (email, otp) => {
 		set({ loading: true });
 
 		try {
-			const res = await axios.post("/auth/verify-otp", { email, otp });
+			const res = await axios.post("/auth/google", { token });
 
 			set({
-				user: res.data.user,
-				otpPending: false,
-				pendingEmail: null,
+				user: res.data,
 				loading: false,
 			});
 
-			toast.success("Verification successful");
+			toast.success("Login successful");
+			return true;
 		} catch (error) {
 			set({ loading: false });
-			toast.error(error.response?.data?.message || "Invalid OTP");
+			toast.error("Google login failed");
+			return false;
 		}
 	},
 
-	resetPassword: async (token, password, navigate) => {
-	set({ loading: true });
-
-	try {
-		await axios.post("/auth/reset-password", {
-			token,
-			password,
-		});
-
-		set({ loading: false });
-		toast.success("Password reset successful");
-		navigate("/login");
-	} catch (error) {
-		set({ loading: false });
-		toast.error(error.response?.data?.message || "Reset failed");
-	}
-},
-
-
-	
+	/* ===================== LOGOUT ===================== */
 	logout: async () => {
 		try {
 			await axios.post("/auth/logout");
 		} catch {
-			
+			// ignore
 		}
 
 		set({
 			user: null,
-			otpPending: false,
-			pendingEmail: null,
 		});
 	},
 
-	
+	/* ===================== CHECK AUTH ===================== */
 	checkAuth: async () => {
-		const { otpPending } = get();
-		if (otpPending) {
-			set({ checkingAuth: false });
-			return;
-		}
-
 		set({ checkingAuth: true });
 
 		try {
@@ -153,10 +99,10 @@ export const useUserStore = create((set, get) => ({
 		}
 	},
 
-	
+	/* ===================== REFRESH TOKEN ===================== */
 	refreshToken: async () => {
-		const { checkingAuth, otpPending } = get();
-		if (checkingAuth || otpPending) return;
+		const { checkingAuth } = get();
+		if (checkingAuth) return;
 
 		set({ checkingAuth: true });
 
@@ -173,18 +119,13 @@ export const useUserStore = create((set, get) => ({
 	},
 }));
 
+/* ===================== AXIOS INTERCEPTOR ===================== */
 let refreshPromise = null;
 
 axios.interceptors.response.use(
 	(res) => res,
 	async (error) => {
 		const originalRequest = error.config;
-		const { otpPending } = useUserStore.getState();
-
-		
-		if (otpPending) {
-			return Promise.reject(error);
-		}
 
 		if (error.response?.status === 401 && !originalRequest._retry) {
 			originalRequest._retry = true;

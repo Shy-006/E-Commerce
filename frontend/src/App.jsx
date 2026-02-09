@@ -4,14 +4,11 @@ import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
-import VerifyOtpPage from "./pages/VerifyOtpPage";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
 import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
 import PurchaseCancelPage from "./pages/PurchaseCancelPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
@@ -21,31 +18,23 @@ import { useUserStore } from "./stores/useUserStore";
 import { useCartStore } from "./stores/useCartStore";
 
 function App() {
-	const {
-		user,
-		otpPending,
-		checkAuth,
-		checkingAuth,
-	} = useUserStore();
-
+	const { user, checkAuth, checkingAuth } = useUserStore();
 	const { getCartItems } = useCartStore();
 
-	
+	/* ===================== AUTH CHECK ===================== */
 	useEffect(() => {
-		if (!otpPending) {
-			checkAuth();
-		}
-	}, [otpPending, checkAuth]);
+		checkAuth();
+	}, [checkAuth]);
 
-	
+	/* ===================== LOAD CART ===================== */
 	useEffect(() => {
 		if (user) {
 			getCartItems();
 		}
 	}, [user, getCartItems]);
 
-	
-	if (checkingAuth && !otpPending) {
+	/* ===================== LOADING ===================== */
+	if (checkingAuth) {
 		return <LoadingSpinner />;
 	}
 
@@ -61,38 +50,20 @@ function App() {
 				<Navbar />
 
 				<Routes>
-					
+					{/* PUBLIC */}
 					<Route path="/" element={<HomePage />} />
 
 					<Route
 						path="/signup"
-						element={
-							!user
-								? <SignUpPage />
-								: <Navigate to="/" replace />
-						}
+						element={!user ? <SignUpPage /> : <Navigate to="/" replace />}
 					/>
 
 					<Route
 						path="/login"
-						element={
-							!user
-								? <LoginPage />
-								: <Navigate to="/" replace />
-						}
+						element={!user ? <LoginPage /> : <Navigate to="/" replace />}
 					/>
 
-				
-					<Route
-						path="/verify-otp"
-						element={
-							otpPending
-								? <VerifyOtpPage />
-								: <Navigate to="/login" replace />
-						}
-					/>
-
-					
+					{/* ADMIN */}
 					<Route
 						path="/secret-dashboard"
 						element={
@@ -102,37 +73,27 @@ function App() {
 						}
 					/>
 
+					{/* SHOP */}
 					<Route path="/category/:category" element={<CategoryPage />} />
 
 					<Route
 						path="/cart"
-						element={
-							user
-								? <CartPage />
-								: <Navigate to="/login" replace />
-						}
+						element={user ? <CartPage /> : <Navigate to="/login" replace />}
 					/>
 
 					<Route
 						path="/purchase-success"
 						element={
-							user
-								? <PurchaseSuccessPage />
-								: <Navigate to="/login" replace />
+							user ? <PurchaseSuccessPage /> : <Navigate to="/login" replace />
 						}
 					/>
 
 					<Route
 						path="/purchase-cancel"
 						element={
-							user
-								? <PurchaseCancelPage />
-								: <Navigate to="/login" replace />
+							user ? <PurchaseCancelPage /> : <Navigate to="/login" replace />
 						}
 					/>
-					<Route path="/forgot-password" element={<ForgotPasswordPage />} />
-<Route path="/reset-password" element={<ResetPasswordPage />} />
-
 				</Routes>
 			</div>
 

@@ -3,13 +3,8 @@ import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
-import sendOtpFlow from "../utlis/sendOtpFlow.js";
-import sendLoginAlertEmail from "../utlis/sendLoginAlertEmail.js";
-import crypto from "crypto";
-import sendResetPasswordEmail from "../utlis/sendResetPasswordEmail.js";
 
-
-
+/* ===================== TOKEN HELPERS ===================== */
 const generateTokens = (userId) => {
 	const accessToken = jwt.sign(
 		{ userId },
@@ -51,11 +46,14 @@ const setCookies = (res, accessToken, refreshToken) => {
 	});
 };
 
-
-
+/* ===================== SIGNUP ===================== */
 export const signup = async (req, res) => {
 	try {
 		const { name, email, password } = req.body;
+
+		if (!name || !email || !password) {
+			return res.status(400).json({ message: "All fields are required" });
+		}
 
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
@@ -66,54 +64,13 @@ export const signup = async (req, res) => {
 			name,
 			email,
 			password,
-			emailVerified: false,
 		});
-
-		
-		await sendOtpFlow(user);
-
-		
-
-		return res.status(201).json({
-			message: "OTP sent to email",
-			email: user.email,
-		});
-	} catch (error) {
-		console.error("Signup error:", error);
-		return res.status(500).json({ message: "Signup failed" });
-	}
-};
-
-
-
-export const verifyOtp = async (req, res) => {
-	try {
-		const { email, otp } = req.body;
-
-		const user = await User.findOne({ email });
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
-
-		if (!user.otp || user.otpExpiry < Date.now()) {
-			return res.status(400).json({ message: "OTP expired" });
-		}
-
-		const isValid = await bcrypt.compare(otp, user.otp);
-		if (!isValid) {
-			return res.status(400).json({ message: "Invalid OTP" });
-		}
-
-		user.otp = undefined;
-		user.otpExpiry = undefined;
-		user.emailVerified = true;
-		await user.save();
 
 		const { accessToken, refreshToken } = generateTokens(user._id);
 		await storeRefreshToken(user._id, refreshToken);
 		setCookies(res, accessToken, refreshToken);
 
-		return res.json({
+		return res.status(201).json({
 			message: "Signup successful",
 			user: {
 				_id: user._id,
@@ -123,35 +80,28 @@ export const verifyOtp = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Verify OTP error:", error);
-		return res.status(500).json({ message: "OTP verification failed" });
+		console.error("Signup error:", error);
+		return res.status(500).json({ message: "Signup failed" });
 	}
 };
 
-
-
+/* ===================== LOGIN ===================== */
 export const login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
+
+		if (!email || !password) {
+			return res.status(400).json({ message: "All fields are required" });
+		}
 
 		const user = await User.findOne({ email });
 		if (!user || !(await user.comparePassword(password))) {
 			return res.status(400).json({ message: "Invalid email or password" });
 		}
 
-		if (!user.emailVerified) {
-			return res.status(403).json({ message: "Please verify your email first" });
-		}
-
 		const { accessToken, refreshToken } = generateTokens(user._id);
 		await storeRefreshToken(user._id, refreshToken);
 		setCookies(res, accessToken, refreshToken);
-
-		await sendLoginAlertEmail({
-			email: user.email,
-			browser: req.headers["user-agent"],
-			ip: req.ip,
-		});
 
 		return res.json({
 			_id: user._id,
@@ -165,8 +115,7 @@ export const login = async (req, res) => {
 	}
 };
 
-
-
+/* ===================== LOGOUT ===================== */
 export const logout = async (req, res) => {
 	try {
 		const refreshToken = req.cookies.refreshToken;
@@ -188,8 +137,7 @@ export const logout = async (req, res) => {
 	}
 };
 
-
-
+/* ===================== REFRESH TOKEN ===================== */
 export const refreshToken = async (req, res) => {
 	try {
 		const refreshToken = req.cookies.refreshToken;
@@ -229,14 +177,12 @@ export const refreshToken = async (req, res) => {
 	}
 };
 
-
-
+/* ===================== PROFILE ===================== */
 export const getProfile = async (req, res) => {
 	return res.json(req.user);
 };
 
-
-
+/* ===================== GOOGLE LOGIN ===================== */
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const googleLogin = async (req, res) => {
@@ -258,7 +204,6 @@ export const googleLogin = async (req, res) => {
 				email,
 				avatar: picture,
 				authProvider: "google",
-				emailVerified: true,
 				password: Math.random().toString(36),
 			});
 		}
@@ -266,12 +211,6 @@ export const googleLogin = async (req, res) => {
 		const { accessToken, refreshToken } = generateTokens(user._id);
 		await storeRefreshToken(user._id, refreshToken);
 		setCookies(res, accessToken, refreshToken);
-
-		await sendLoginAlertEmail({
-			email: user.email,
-			browser: req.headers["user-agent"],
-			ip: req.ip,
-		});
 
 		return res.json({
 			_id: user._id,
@@ -283,66 +222,4 @@ export const googleLogin = async (req, res) => {
 		console.error("Google login error:", error);
 		return res.status(401).json({ message: "Google authentication failed" });
 	}
-};
-
-export const forgotPassword = async (req, res) => {
-	const { email } = req.body;
-
-	const user = await User.findOne({ email });
-	if (!user) {
-		return res.json({ message: "If user exists, email sent" });
-	}
-
-	
-	const resetToken = crypto.randomBytes(32).toString("hex");
-
-	
-	const hashedToken = crypto
-		.createHash("sha256")
-		.update(resetToken)
-		.digest("hex");
-
-	
-	user.resetPasswordToken = hashedToken;
-	user.resetPasswordExpiry = Date.now() + 15 * 60 * 1000;
-
-	await user.save();
-
-	
-	const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
-
-	await sendResetPasswordEmail(user.email, resetUrl);
-
-	res.json({ message: "Reset link sent" });
-};
-
-export const resetPassword = async (req, res) => {
-	const { token, password } = req.body;
-
-	if (!token) {
-		return res.status(400).json({ message: "Token missing" });
-	}
-
-	
-	const hashedToken = crypto
-		.createHash("sha256")
-		.update(token)
-		.digest("hex");
-
-	const user = await User.findOne({
-		resetPasswordToken: hashedToken,
-		resetPasswordExpiry: { $gt: Date.now() },
-	});
-
-	if (!user) {
-		return res.status(400).json({ message: "Invalid or expired token" });
-	}
-
-	user.password = password;
-	user.resetPasswordToken = undefined;
-	user.resetPasswordExpiry = undefined;
-
-	await user.save();
-
-	res.json({ message: "Password reset successful" });
 };

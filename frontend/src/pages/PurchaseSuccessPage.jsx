@@ -7,7 +7,7 @@ import Confetti from "react-confetti";
 
 const PurchaseSuccessPage = () => {
 	const [isProcessing, setIsProcessing] = useState(true);
-	const [orderId, setOrderId] = useState()
+	const [orderId, setOrderId] = useState();
 	const { clearCart } = useCartStore();
 	const [error, setError] = useState(null);
 
@@ -17,7 +17,7 @@ const PurchaseSuccessPage = () => {
 				const response = await axios.post("/payments/checkout-success", {
 					sessionId,
 				});
-				setOrderId(response?.data?.orderId)
+				setOrderId(response?.data?.orderId);
 				clearCart();
 			} catch (error) {
 				console.log(error);
@@ -36,7 +36,6 @@ const PurchaseSuccessPage = () => {
 	}, [clearCart]);
 
 	if (isProcessing) return "Processing...";
-
 	if (error) return `Error: ${error}`;
 
 	return (
@@ -55,6 +54,7 @@ const PurchaseSuccessPage = () => {
 					<div className='flex justify-center'>
 						<CheckCircle className='text-emerald-400 w-16 h-16 mb-4' />
 					</div>
+
 					<h1 className='text-2xl sm:text-3xl font-bold text-center text-emerald-400 mb-2'>
 						Purchase Successful!
 					</h1>
@@ -62,9 +62,11 @@ const PurchaseSuccessPage = () => {
 					<p className='text-gray-300 text-center mb-2'>
 						Thank you for your order. {"We're"} processing it now.
 					</p>
+
 					<p className='text-emerald-400 text-center text-sm mb-6'>
-						Check your email for order details and updates.
+						Your order has been placed successfully and is being processed.
 					</p>
+
 					<div className='bg-gray-700 rounded-lg p-4 mb-6'>
 						<div className='flex items-center justify-between mb-2'>
 							<span className='text-sm text-gray-400'>Order number</span>
@@ -72,22 +74,21 @@ const PurchaseSuccessPage = () => {
 						</div>
 						<div className='flex items-center justify-between'>
 							<span className='text-sm text-gray-400'>Estimated delivery</span>
-							<span className='text-sm font-semibold text-emerald-400'>3-5 business days</span>
+							<span className='text-sm font-semibold text-emerald-400'>
+								3–5 business days
+							</span>
 						</div>
 					</div>
 
 					<div className='space-y-4'>
-						<button
-							className='w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4
-             rounded-lg transition duration-300 flex items-center justify-center'
-						>
+						<button className='w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center'>
 							<HandHeart className='mr-2' size={18} />
 							Thanks for trusting us!
 						</button>
+
 						<Link
 							to={"/"}
-							className='w-full bg-gray-700 hover:bg-gray-600 text-emerald-400 font-bold py-2 px-4 
-            rounded-lg transition duration-300 flex items-center justify-center'
+							className='w-full bg-gray-700 hover:bg-gray-600 text-emerald-400 font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center'
 						>
 							Continue Shopping
 							<ArrowRight className='ml-2' size={18} />
@@ -98,4 +99,5 @@ const PurchaseSuccessPage = () => {
 		</div>
 	);
 };
+
 export default PurchaseSuccessPage;

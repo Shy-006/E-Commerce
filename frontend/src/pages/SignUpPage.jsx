@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserPlus, ArrowRight, Loader } from "lucide-react";
 import { motion } from "framer-motion";
@@ -13,32 +13,26 @@ const SignUpPage = () => {
     confirmPassword: "",
   });
 
-  const { signup, loading, pendingEmail } = useUserStore();
+  const { signup, loading } = useUserStore();
   const navigate = useNavigate();
 
- 
-  useEffect(() => {
-    if (pendingEmail) {
-      navigate("/verify-otp", {
-        state: { email: pendingEmail },
-        replace: true,
-      });
-    }
-  }, [pendingEmail, navigate]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-   
     if (formData.password !== formData.confirmPassword) {
       return toast.error("Passwords do not match");
     }
 
-    signup({
+    const success = await signup({
       name: formData.name,
       email: formData.email,
       password: formData.password,
     });
+
+    // Optional: redirect after successful signup
+    if (success) {
+      navigate("/login");
+    }
   };
 
   return (
