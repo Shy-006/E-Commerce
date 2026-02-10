@@ -1,10 +1,10 @@
 {
   "name": "e-commerce",
   "version": "1.0.0",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "dev":"nodemon backend/server.js",
-    "start": "node backend/server.js"
+    "dev":"server.js",
+    "start": "server.js"
   },
   "keywords": [],
   "author": "",
