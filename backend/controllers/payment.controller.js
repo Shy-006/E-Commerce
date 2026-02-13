@@ -11,6 +11,10 @@ export const createCheckoutSession = async (req, res) => {
 			return res.status(400).json({ error: "Invalid or empty products array" });
 		}
 
+		/* ===================== ONLY REQUIRED FIX ===================== */
+		const clientUrl = process.env.CLIENT_URL.replace(/\/+$/, "");
+		/* ============================================================= */
+
 		let totalAmount = 0;
 
 		const lineItems = products.map((product) => {
@@ -52,8 +56,11 @@ export const createCheckoutSession = async (req, res) => {
 			payment_method_types: ["card"],
 			line_items: lineItems,
 			mode: "payment",
-			success_url: `${process.env.CLIENT_URL}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
-			cancel_url: `${process.env.CLIENT_URL}/purchase-cancel`,
+
+			/* ✅ FIXED URLS (NO DOUBLE SLASH POSSIBLE) */
+			success_url: `${clientUrl}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
+			cancel_url: `${clientUrl}/purchase-cancel`,
+
 			discounts: coupon
 				? [
 						{
@@ -63,6 +70,7 @@ export const createCheckoutSession = async (req, res) => {
 						},
 				  ]
 				: [],
+
 			metadata: {
 				userId: req.user._id.toString(),
 				couponCode: couponCode || "",
@@ -80,13 +88,13 @@ export const createCheckoutSession = async (req, res) => {
 			await createNewCoupon(req.user._id);
 		}
 
-		res.status(200).json({
+		return res.status(200).json({
 			id: session.id,
 			totalAmount: totalAmount / 100,
 		});
 	} catch (error) {
 		console.error("Error processing checkout:", error);
-		res.status(500).json({
+		return res.status(500).json({
 			message: "Error processing checkout",
 			error: error.message,
 		});
@@ -96,6 +104,7 @@ export const createCheckoutSession = async (req, res) => {
 export const checkoutSuccess = async (req, res) => {
 	try {
 		const { sessionId } = req.body;
+
 		const session = await stripe.checkout.sessions.retrieve(sessionId);
 
 		if (session.payment_status !== "paid") {
@@ -127,19 +136,21 @@ export const checkoutSuccess = async (req, res) => {
 
 		await newOrder.save();
 
-		res.status(200).json({
+		return res.status(200).json({
 			success: true,
 			message: "Payment successful, order created",
 			orderId: newOrder._id,
 		});
 	} catch (error) {
 		console.error("Error processing successful checkout:", error);
-		res.status(500).json({
+		return res.status(500).json({
 			message: "Error processing successful checkout",
 			error: error.message,
 		});
 	}
 };
+
+/* ===================== HELPERS ===================== */
 
 async function createStripeCoupon(discountPercentage) {
 	const coupon = await stripe.coupons.create({
