@@ -57,21 +57,20 @@ const userSchema = new mongoose.Schema(
 );
 
 /* ===================== PASSWORD HASH ===================== */
-userSchema.pre("save", async function (next) {
-  try {
-    if (!this.isModified("password")) return next();
-    if (!this.password) return next();
+userSchema.pre("save", async function () {
+ 
+  if (!this.isModified("password")) return;
 
-    this.password = await bcrypt.hash(this.password, 10);
-    next();
-  } catch (error) {
-    next(error);
-  }
+  
+  if (!this.password) return;
+
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
-/* ===================== PASSWORD MATCH ===================== */
+
 userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  if (!this.password) return false; 
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 export default mongoose.model("User", userSchema);
