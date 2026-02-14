@@ -100,12 +100,7 @@ const LoginPage = () => {
               Sign up <ArrowRight className="inline h-4 w-4" />
             </Link>
           </p>
-          <Link
-	to="/forgot-password"
-	className="text-sm text-emerald-400 hover:underline"
->
-	Forgot password?
-</Link>
+        
 
         </div>
       </motion.div>
