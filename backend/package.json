@@ -5,8 +5,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js"
+    "dev":"server.js",
+    "start": "server.js"
   },
   "keywords": [
     "ecommerce",

@@ -16,17 +16,22 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-/* CORS */
+
+app.set("trust proxy", 1);   
+
+/* ================= CORS ================= */
 app.use(
   cors({
-    origin: true,
+    origin: "https://shy-commerce.vercel.app",
     credentials: true,
   })
 );
 
+/* ================= MIDDLEWARE ================= */
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
+/* ================= ROUTES ================= */
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
@@ -34,11 +39,13 @@ app.use("/api/coupons", couponRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
+/* ================= HEALTH CHECK ================= */
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
-app.listen(PORT, () => {
+/* ================= START SERVER ================= */
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  connectDB();
+  await connectDB();
 });
