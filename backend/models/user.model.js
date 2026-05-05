@@ -74,7 +74,7 @@ userSchema.pre("save", async function () {
   if (this.authProvider !== "local") return;
 
   const salt = await bcrypt.genSalt(10);
-  this.password = bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 userSchema.methods.comparePassword = async function (password) {
